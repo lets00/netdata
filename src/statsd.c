@@ -724,6 +724,8 @@ static void statsd_del_callback(int fd, int socktype, void *data) {
 
         freez(data);
     }
+
+    return;
 }
 
 // Receive data
@@ -1063,12 +1065,6 @@ int statsd_readfile(const char *path, const char *filename) {
                 statsd.apps = app;
                 chart = NULL;
                 dict = NULL;
-
-                {
-                    char lineandfile[FILENAME_MAX + 1];
-                    snprintfz(lineandfile, FILENAME_MAX, "%zu@%s", line, filename);
-                    app->source = strdupz(lineandfile);
-                }
             }
             else if(app) {
                 if(!strcmp(s, "dictionary")) {
@@ -1094,12 +1090,6 @@ int statsd_readfile(const char *path, const char *filename) {
 
                     chart->next = app->charts;
                     app->charts = chart;
-
-                    {
-                        char lineandfile[FILENAME_MAX + 1];
-                        snprintfz(lineandfile, FILENAME_MAX, "%zu@%s", line, filename);
-                        chart->source = strdupz(lineandfile);
-                    }
                 }
             }
             else
@@ -1149,7 +1139,7 @@ int statsd_readfile(const char *path, const char *filename) {
             }
             else if (!strcmp(name, "metrics")) {
                 simple_pattern_free(app->metrics);
-                app->metrics = simple_pattern_create(value, NULL, SIMPLE_PATTERN_EXACT);
+                app->metrics = simple_pattern_create(value, SIMPLE_PATTERN_EXACT);
             }
             else if (!strcmp(name, "private charts")) {
                 if (!strcmp(value, "yes") || !strcmp(value, "on"))
@@ -1259,7 +1249,7 @@ int statsd_readfile(const char *path, const char *filename) {
                 );
 
                 if(pattern)
-                    dim->metric_pattern = simple_pattern_create(dim->metric, NULL, SIMPLE_PATTERN_EXACT);
+                    dim->metric_pattern = simple_pattern_create(dim->metric, SIMPLE_PATTERN_EXACT);
             }
             else {
                 error("STATSD: ignoring line %zu ('%s') of file '%s/%s'. Unknown keyword for the [%s] section.", line, name, path, filename, chart->id);
@@ -1374,7 +1364,7 @@ static inline RRDSET *statsd_private_rrdset_create(
             , title           // title
             , units           // units
             , "statsd"        // plugin
-            , "private_chart" // module
+            , NULL            // module
             , priority        // priority
             , update_every    // update every
             , chart_type      // chart type
@@ -1881,7 +1871,7 @@ static inline void statsd_update_app_chart(STATSD_APP *app, STATSD_APP_CHART *ch
                 , chart->title              // title
                 , chart->units              // units
                 , "statsd"                  // plugin
-                , chart->source             // module
+                , NULL                      // module
                 , chart->priority           // priority
                 , statsd.update_every       // update every
                 , chart->chart_type         // chart type
@@ -2005,7 +1995,7 @@ void *statsd_main(void *ptr) {
     statsd.recvmmsg_size = (size_t)config_get_number(CONFIG_SECTION_STATSD, "udp messages to process at once", (long long)statsd.recvmmsg_size);
 #endif
 
-    statsd.charts_for = simple_pattern_create(config_get(CONFIG_SECTION_STATSD, "create private charts for metrics matching", "*"), NULL, SIMPLE_PATTERN_EXACT);
+    statsd.charts_for = simple_pattern_create(config_get(CONFIG_SECTION_STATSD, "create private charts for metrics matching", "*"), SIMPLE_PATTERN_EXACT);
     statsd.max_private_charts = (size_t)config_get_number(CONFIG_SECTION_STATSD, "max private charts allowed", (long long)statsd.max_private_charts);
     statsd.max_private_charts_hard = (size_t)config_get_number(CONFIG_SECTION_STATSD, "max private charts hard limit", (long long)statsd.max_private_charts * 5);
     statsd.private_charts_memory_mode = rrd_memory_mode_id(config_get(CONFIG_SECTION_STATSD, "private charts memory mode", rrd_memory_mode_name(default_rrd_memory_mode)));

@@ -140,20 +140,19 @@ static inline void rrdpush_send_chart_definition_nolock(RRDSET *st) {
 
 // sends the current chart dimensions
 static inline void rrdpush_send_chart_metrics_nolock(RRDSET *st) {
-    RRDHOST *host = st->rrdhost;
-    buffer_sprintf(host->rrdpush_sender_buffer, "BEGIN \"%s\" %llu\n", st->id, (st->upstream_resync_time > st->last_collected_time.tv_sec)?st->usec_since_last_update:0);
+    buffer_sprintf(st->rrdhost->rrdpush_sender_buffer, "BEGIN \"%s\" %llu\n", st->id, (st->upstream_resync_time > st->last_collected_time.tv_sec)?st->usec_since_last_update:0);
 
     RRDDIM *rd;
     rrddim_foreach_read(rd, st) {
         if(rd->updated && rd->exposed)
-            buffer_sprintf(host->rrdpush_sender_buffer
+            buffer_sprintf(st->rrdhost->rrdpush_sender_buffer
                            , "SET \"%s\" = " COLLECTED_NUMBER_FORMAT "\n"
                            , rd->id
                            , rd->collected_value
         );
     }
 
-    buffer_strcat(host->rrdpush_sender_buffer, "END\n");
+    buffer_strcat(st->rrdhost->rrdpush_sender_buffer, "END\n");
 }
 
 static void rrdpush_sender_thread_spawn(RRDHOST *host);
@@ -1005,7 +1004,7 @@ int rrdpush_receiver_thread_spawn(RRDHOST *host, struct web_client *w, char *url
     }
 
     {
-        SIMPLE_PATTERN *key_allow_from = simple_pattern_create(appconfig_get(&stream_config, key, "allow from", "*"), NULL, SIMPLE_PATTERN_EXACT);
+        SIMPLE_PATTERN *key_allow_from = simple_pattern_create(appconfig_get(&stream_config, key, "allow from", "*"), SIMPLE_PATTERN_EXACT);
         if(key_allow_from) {
             if(!simple_pattern_matches(key_allow_from, w->client_ip)) {
                 simple_pattern_free(key_allow_from);
@@ -1024,7 +1023,7 @@ int rrdpush_receiver_thread_spawn(RRDHOST *host, struct web_client *w, char *url
     }
 
     {
-        SIMPLE_PATTERN *machine_allow_from = simple_pattern_create(appconfig_get(&stream_config, machine_guid, "allow from", "*"), NULL, SIMPLE_PATTERN_EXACT);
+        SIMPLE_PATTERN *machine_allow_from = simple_pattern_create(appconfig_get(&stream_config, machine_guid, "allow from", "*"), SIMPLE_PATTERN_EXACT);
         if(machine_allow_from) {
             if(!simple_pattern_matches(machine_allow_from, w->client_ip)) {
                 simple_pattern_free(machine_allow_from);

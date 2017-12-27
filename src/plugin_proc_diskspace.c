@@ -1,6 +1,6 @@
 #include "common.h"
 
-#define DELAULT_EXCLUDED_PATHS "/proc/* /sys/* /var/run/user/* /run/user/* /snap/* /var/lib/docker/*"
+#define DELAULT_EXLUDED_PATHS "/proc/* /sys/* /var/run/user/* /run/user/* /snap/* /var/lib/docker/*"
 #define DEFAULT_EXCLUDED_FILESYSTEMS ""
 #define CONFIG_SECTION_DISKSPACE "plugin:proc:diskspace"
 
@@ -46,7 +46,7 @@ struct mount_point_metadata {
 
 static DICTIONARY *dict_mountpoints = NULL;
 
-#define rrdset_obsolete_and_pointer_null(st) do { if(st) { rrdset_is_obsolete(st); (st) = NULL; } } while(st)
+#define rrdset_obsolete_and_pointer_null(st) do { if(st) { rrdset_is_obsolete(st); st = NULL; } } while(st)
 
 int mount_point_cleanup(void *entry, void *data) {
     (void)data;
@@ -96,15 +96,13 @@ static inline void do_disk_space_stats(struct mountinfo *mi, int update_every) {
         }
 
         excluded_mountpoints = simple_pattern_create(
-                config_get(CONFIG_SECTION_DISKSPACE, "exclude space metrics on paths", DELAULT_EXCLUDED_PATHS)
-                , NULL
-                , mode
+                config_get(CONFIG_SECTION_DISKSPACE, "exclude space metrics on paths", DELAULT_EXLUDED_PATHS),
+                mode
         );
 
         excluded_filesystems = simple_pattern_create(
-                config_get(CONFIG_SECTION_DISKSPACE, "exclude space metrics on filesystems", DEFAULT_EXCLUDED_FILESYSTEMS)
-                , NULL
-                , SIMPLE_PATTERN_EXACT
+                config_get(CONFIG_SECTION_DISKSPACE, "exclude space metrics on filesystems", DEFAULT_EXCLUDED_FILESYSTEMS),
+                SIMPLE_PATTERN_EXACT
         );
 
         dict_mountpoints = dictionary_create(DICTIONARY_FLAG_SINGLE_THREADED);
